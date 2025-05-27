@@ -1,21 +1,15 @@
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Base64;
 import java.util.Iterator;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import java.io.OutputStream;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
     public static void main(String[] args) {
         String excelPath = "src/TestSet_Test.xlsx"; // uprav cestu podle potřeby
@@ -51,39 +45,40 @@ public class Main {
     public static void createSubtask(String jiraBaseUrl, String email, String apiToken,
                                      String summary, String description, String parentIssueKey) throws Exception {
 
-        String jiraUrl = jiraBaseUrl + "/rest/api/3/issue";
+        String jiraUrl = jiraBaseUrl + "/rest/api/3/issue/";
 
         String json = "{\n" +
                 "  \"fields\": {\n" +
                 "    \"project\": {\n" +
                 "      \"key\": \"" + parentIssueKey.split("-")[0] + "\"\n" +
                 "    },\n" +
-                "    \"parent\": {\"key\": \"" + parentIssueKey + "\"},\n" +
+                "    \"parent\": {\n" +
+                "      \"key\": \"" + parentIssueKey + "\"\n" +
+                "    },\n" +
                 "    \"summary\": \"" + summary + "\",\n" +
                 "    \"description\": \"" + description + "\",\n" +
-                "    \"issuetype\": {\"name\": \"Sub-task\"}\n" +
+                "    \"issuetype\": {\n" +
+                "      \"name\": \"Sub-task\"\n" +
+                "    }\n" +
                 "  }\n" +
                 "}";
 
         URL url = new URL(jiraUrl);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setDoOutput(true);
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("Content-Type", "application/json");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setDoOutput(true);
+        connection.setRequestMethod("POST");
+        connection.setRequestProperty("Content-Type", "application/json");
 
         String auth = email + ":" + apiToken;
         String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
-        conn.setRequestProperty("Authorization", "Basic " + encodedAuth);
+        connection.setRequestProperty("Authorization", "Basic " + encodedAuth);
 
-        conn.getOutputStream().write(json.getBytes());
-
-        int responseCode = conn.getResponseCode();
-        if (responseCode >= 200 && responseCode < 300) {
-            System.out.println("✅ Subtask vytvořen: " + summary);
-        } else {
-            System.out.println("❌ Chyba: HTTP " + responseCode);
+        try (OutputStream os = connection.getOutputStream()) {
+            byte[] input = json.getBytes("utf-8");
+            os.write(input, 0, input.length);
         }
 
-        conn.disconnect();
+        int responseCode = connection.getResponseCode();
+        System.out.println("HTTP Response Code: " + responseCode);
     }
-    }
+}
